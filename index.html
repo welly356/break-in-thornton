@@ -2,17 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BREAK IN: THORNTON SURVIVAL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BREAK IN: THORNTON</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="ui">
-        <div class="stat-box">HP: <span id="hp">100</span></div>
-        <div class="stat-box">DAY 1: <span id="timer">60</span>s until NIGHT</div>
-        <div id="inventory">Items: <span id="item-list">Empty</span></div>
+    <div id="menu">
+        <h1 class="title">BREAK IN</h1>
+        <h2 class="subtitle">THORNTON: 104TH AVE</h2>
+        <button class="start-button" onclick="startGame()">ENTER THE HOUSE</button>
+        <div class="credits">Inspired by Cracky4 | <a href="https://discord.gg/mYdWExTQE" target="_blank" style="color: #7289da;">Join Discord</a></div>
     </div>
 
-    <div id="interaction-prompt">Press [E] to Interact</div>
+    <div id="ui">
+        <div class="stats">
+            <div class="stat">HP: <span id="hp">100</span></div>
+            <div class="stat">TIME: <span id="timer">Daylight</span></div>
+        </div>
+        <div id="message">Find a room and prepare...</div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="game.js"></script>
