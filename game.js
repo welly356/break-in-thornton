@@ -1,75 +1,88 @@
-// --- 1. SETUP ENGINE ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111122); // Dark Thornton night sky
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+let scene, camera, renderer, player;
+let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+let gameStarted = false;
 
-// --- 2. CREATE THE HOUSE ---
-// Floor
-const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(40, 1, 40),
-    new THREE.MeshPhongMaterial({ color: 0x444444 })
-);
-scene.add(floor);
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050510); // Night Sky
 
-// Walls (Simple Box for the "Safe House")
-function createWall(x, z, w, d, color = 0x888888) {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 10, d), new THREE.MeshPhongMaterial({ color }));
-    wall.position.set(x, 5, z);
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Light
+    const light = new THREE.PointLight(0xffffff, 1, 100);
+    light.position.set(0, 10, 0);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x202020));
+
+    // Floor (The Thornton House Ground)
+    const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100),
+        new THREE.MeshPhongMaterial({ color: 0x1a1a1a })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    // Walls (Simple House Box)
+    const wallMat = new THREE.MeshPhongMaterial({ color: 0x333344 });
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(30, 15, 1), wallMat);
+    wall.position.set(0, 7.5, -15);
     scene.add(wall);
+
+    camera.position.set(0, 5, 15);
 }
-createWall(0, -20, 40, 1); // Back wall
-createWall(-20, 0, 1, 40); // Left wall
-createWall(20, 0, 1, 40);  // Right wall
-createWall(0, 20, 40, 1, 0x552222); // Front wall with "Door" area
 
-// Lighting
-const ambientLight = new THREE.AmbientLight(0x404040, 1); 
-scene.add(ambientLight);
-const pointLight = new THREE.PointLight(0xffffff, 1, 50);
-pointLight.position.set(0, 8, 0); // Ceiling light
-scene.add(pointLight);
+function startGame() {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('ui').style.display = 'block';
+    gameStarted = true;
+    
+    // Start 60-second Countdown to Night
+    let timeLeft = 60;
+    const timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').innerText = timeLeft + "s";
+        if (timeLeft <= 10) document.getElementById('timer').style.color = "red";
+        if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            document.getElementById('message').innerText = "THEY ARE BREAKING IN!";
+            scene.background = new THREE.Color(0x000000);
+        }
+    }, 1000);
+}
 
-// --- 3. PLAYER MOVEMENT ---
-let move = { forward: false, backward: false, left: false, right: false };
+// Controls
 document.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyW') move.forward = true;
-    if (e.code === 'KeyS') move.backward = true;
-    if (e.code === 'KeyA') move.left = true;
-    if (e.code === 'KeyD') move.right = true;
+    if(e.code === 'KeyW') moveForward = true;
+    if(e.code === 'KeyS') moveBackward = true;
+    if(e.code === 'KeyA') moveLeft = true;
+    if(e.code === 'KeyD') moveRight = true;
 });
 document.addEventListener('keyup', (e) => {
-    if (e.code === 'KeyW') move.forward = false;
-    if (e.code === 'KeyS') move.backward = false;
-    if (e.code === 'KeyA') move.left = false;
-    if (e.code === 'KeyD') move.right = false;
+    if(e.code === 'KeyW') moveForward = false;
+    if(e.code === 'KeyS') moveBackward = false;
+    if(e.code === 'KeyA') moveLeft = false;
+    if(e.code === 'KeyD') moveRight = false;
 });
-
-camera.position.set(0, 5, 10);
-
-// --- 4. GAME LOOP ---
-let timeLeft = 60;
-setInterval(() => {
-    if (timeLeft > 0) {
-        timeLeft--;
-        document.getElementById('timer').innerText = timeLeft;
-    } else {
-        scene.background = new THREE.Color(0x000000); // Pitch black
-        document.getElementById('timer').innerText = "THEY ARE HERE";
-    }
-}, 1000);
 
 function animate() {
     requestAnimationFrame(animate);
-
-    const speed = 0.2;
-    if (move.forward) camera.position.z -= speed;
-    if (move.backward) camera.position.z += speed;
-    if (move.left) camera.position.x -= speed;
-    if (move.right) camera.position.x += speed;
-
+    if (gameStarted) {
+        if (moveForward) camera.position.z -= 0.15;
+        if (moveBackward) camera.position.z += 0.15;
+        if (moveLeft) camera.position.x -= 0.15;
+        if (moveRight) camera.position.x += 0.15;
+    }
     renderer.render(scene, camera);
 }
+
+init();
 animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
