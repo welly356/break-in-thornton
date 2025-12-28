@@ -2,27 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BREAK IN: THORNTON</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BREAK IN: THORNTON MULTIPLAYER</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="menu">
         <h1 class="title">BREAK IN</h1>
-        <h2 class="subtitle">THORNTON: 104TH AVE</h2>
-        <button class="start-button" onclick="startGame()">ENTER THE HOUSE</button>
-        <div class="credits">Inspired by Cracky4 | <a href="https://discord.gg/mYdWExTQE" target="_blank" style="color: #7289da;">Join Discord</a></div>
+        <p style="color:white">THORNTON: 104TH AVE</p>
+        
+        <div class="multiplayer-tools">
+            <button class="btn" onclick="hostGame()">HOST HOUSE</button>
+            <input type="text" id="joinID" placeholder="Enter Friend's ID">
+            <button class="btn" onclick="joinGame()">JOIN HOUSE</button>
+        </div>
+        <p id="my-id-display" style="color: yellow; font-size: 12px;"></p>
+        <div class="credits">Inspired by Cracky4 | <a href="https://discord.gg/mYdWExTQE" target="_blank">Discord</a></div>
     </div>
 
-    <div id="ui">
+    <div id="ui" style="display: none;">
         <div class="stats">
             <div class="stat">HP: <span id="hp">100</span></div>
-            <div class="stat">TIME: <span id="timer">Daylight</span></div>
+            <div class="stat">ROOM: <span id="room-name">Lobby</span></div>
         </div>
-        <div id="message">Find a room and prepare...</div>
+        <div id="mobile-controls">
+            <div class="joy-btn" id="up">↑</div>
+            <div class="joy-row">
+                <div class="joy-btn" id="left">←</div>
+                <div class="joy-btn" id="down">↓</div>
+                <div class="joy-btn" id="right">→</div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
