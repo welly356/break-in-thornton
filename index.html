@@ -1,19 +1,60 @@
-<div id="comms-panel">
-    <div class="vc-controls">
-        <button id="mic-btn" onclick="toggleMic()" class="btn-small">🎤 Mic: OFF</button>
-        <span id="vc-status" style="font-size: 10px; color: #aaa;"></span>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BREAK IN: THORNTON</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="menu">
+        <h1 class="title">BREAK IN</h1>
+        <p style="color:white; letter-spacing: 3px;">THORNTON: 104TH AVE</p>
+        <div class="setup-box">
+            <button class="btn" onclick="hostGame()">HOST HOUSE</button>
+            <div style="margin: 10px 0;">
+                <input type="text" id="joinID" placeholder="Enter Friend's ID">
+                <button class="btn" onclick="joinGame()">JOIN</button>
+            </div>
+            <p id="my-id-display" style="color: yellow; font-size: 11px;"></p>
+        </div>
+        <div class="credits">Inspired by Cracky4 | <a href="https://discord.gg/mYdWExTQE" target="_blank">Discord</a></div>
     </div>
 
-    <div id="chat-container">
-        <div id="chat-log"></div>
-        <input type="text" id="chat-msg" placeholder="Enter to chat...">
+    <div id="ui" style="display: none;">
+        <div class="top-stats">
+            <div class="stat">HP: <span id="hp">100</span></div>
+            <div class="stat">LOCATION: <span id="room-name">Lobby</span></div>
+        </div>
+
+        <div id="comms-panel">
+            <div class="vc-box">
+                <button id="mic-btn" onclick="toggleMic()">🎤 Mic: OFF</button>
+                <span id="vc-status"></span>
+            </div>
+            <div id="chat-log"></div>
+            <input type="text" id="chat-msg" placeholder="Press Enter to Chat...">
+            <div id="quick-chat">
+                <button onclick="sendQuickChat('HELP!')">🆘 HELP</button>
+                <button onclick="sendQuickChat('HIDE!')">🏚️ HIDE</button>
+                <button onclick="sendQuickChat('BOARD IT!')">🔨 BOARD</button>
+            </div>
+        </div>
+
+        <div id="mobile-controls">
+            <div class="joy-row"><button id="btn-up">↑</button></div>
+            <div class="joy-row">
+                <button id="btn-left">←</button>
+                <button id="btn-down">↓</button>
+                <button id="btn-right">→</button>
+            </div>
+        </div>
     </div>
 
-    <div id="quick-chat">
-        <button onclick="sendQuickChat('HELP!')">🆘 HELP</button>
-        <button onclick="sendQuickChat('Hide!')">🏚️ HIDE</button>
-        <button onclick="sendQuickChat('I need food!')">🍕 FOOD</button>
-    </div>
-</div>
+    <audio id="remote-audio" autoplay></audio>
 
-<audio id="remote-audio" autoplay></audio>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
