@@ -1,24 +1,19 @@
-body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; touch-action: none; }
+body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
 #menu {
     position: absolute; width: 100%; height: 100%; z-index: 100;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: radial-gradient(circle, #200000 0%, #000 100%); color: white;
 }
 .title { font-size: 50px; color: red; text-shadow: 0 0 10px red; margin: 0; }
-.btn { padding: 10px 20px; background: #333; color: white; border: 2px solid white; cursor: pointer; }
-#server-list { background: rgba(0,0,0,0.6); width: 220px; margin: 10px; border: 1px solid #444; max-height: 100px; overflow-y: auto; font-size: 12px; }
-#server-ul { list-style: none; padding: 5px; margin: 0; }
+.btn { padding: 10px 20px; background: #333; color: white; border: 2px solid white; cursor: pointer; margin: 5px; }
+#server-list { background: rgba(0,0,0,0.6); width: 220px; margin: 10px; border: 1px solid #444; max-height: 100px; overflow-y: auto; }
+#server-ul { list-style: none; padding: 5px; margin: 0; font-size: 12px; }
 #ui { position: absolute; top: 0; width: 100%; height: 100%; pointer-events: none; }
 .top-hud { display: flex; padding: 15px; gap: 10px; justify-content: center; }
 .stat-bar { width: 140px; height: 18px; background: #222; border: 2px solid #fff; position: relative; }
 #hp-fill { width: 100%; height: 100%; background: #ff4444; }
-#en-fill { width: 100%; height: 100%; background: #ffcc00; transition: 0.1s; }
+#en-fill { width: 100%; height: 100%; background: #ffcc00; }
 .stat-bar span { position: absolute; width: 100%; text-align: center; color: white; font-size: 10px; top: 1px; }
-#mobile-controls { display: none; }
-@media (max-width: 900px) {
-    #mobile-controls { display: flex; position: absolute; bottom: 30px; width: 100%; justify-content: space-between; padding: 0 20px; pointer-events: auto; }
-    .d-pad button, .action-btns button { width: 55px; height: 55px; background: rgba(255,255,255,0.1); color: white; border: 1px solid white; border-radius: 50%; }
-    .mid-row { display: flex; gap: 50px; }
-}
-#comms-panel { position: absolute; bottom: 20px; left: 10px; width: 200px; pointer-events: auto; }
-#chat-log { height: 80px; background: rgba(0,0,0,0.4); color: white; font-size: 11px; overflow-y: auto; }
+#comms-panel { position: absolute; bottom: 20px; left: 10px; width: 250px; pointer-events: auto; }
+#chat-log { height: 100px; background: rgba(0,0,0,0.5); color: white; font-size: 12px; overflow-y: auto; padding: 5px; }
+#chat-msg { width: 100%; background: #000; color: #fff; border: 1px solid #555; padding: 5px; }
