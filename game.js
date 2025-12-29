@@ -1,4 +1,4 @@
-const REPLIT_URL = "https://your-project-name.your-username.repl.co"; 
+const REPLIT_URL = "https://thornton-break-in.@acharyasarthak0.replit.app" 
 const socket = io(REPLIT_URL); 
 
 let scene, camera, renderer, peer, conn, flashlight;
