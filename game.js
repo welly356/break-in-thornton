@@ -1,15 +1,15 @@
-const REPLIT_URL = "https://.thornton-break-in.acharyasarthak0.replit.app" 
-const socket = io(REPLIT_URL, { transports: ['websocket'] });
+const REPLIT_URL = "https://thornton-break-in.acharyasarthak0.replit.app"; 
+const socket = io(REPLIT_URL, { transports: ['websocket'] }); 
 
 let scene, camera, renderer, peer, conn, flashlight;
 let move = { f: false, b: false, l: false, r: false, interact: false };
-let isSprinting = false, gameTime = 60, energy = 100;
+let isSprinting = false, gameTime = 60, energy = 100, hp = 100;
 let interactables = [];
 const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
 function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020202);
+    scene.background = new THREE.Color(0x050505);
     scene.fog = new THREE.FogExp2(0x000000, 0.08);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -19,7 +19,7 @@ function init() {
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.1); 
     scene.add(ambient);
-    flashlight = new THREE.SpotLight(0xffffff, 5, 40, Math.PI/6, 0.5);
+    flashlight = new THREE.SpotLight(0xffffff, 5, 45, Math.PI/6, 0.5);
     camera.add(flashlight);
     flashlight.target = camera;
     scene.add(camera);
@@ -28,14 +28,22 @@ function init() {
     camera.position.set(0, 5, 25);
 
     peer = new Peer(roomCode); 
-    peer.on('open', id => { document.getElementById('my-id-display').innerText = "YOUR ID: " + id; });
-    peer.on('connection', c => { conn = c; addChat('System', 'A player joined!'); });
+    peer.on('open', id => { 
+        document.getElementById('my-id-display').innerText = "YOUR ID: " + id; 
+    });
+    peer.on('connection', c => { 
+        conn = c; 
+        addChat('System', 'A player joined!'); 
+    });
 
     socket.on('updateServerList', (houses) => {
         const ul = document.getElementById('server-ul');
+        if(!ul) return;
         ul.innerHTML = houses.length ? "" : "<li>No active houses</li>";
         houses.forEach(h => {
-            if(h.id !== roomCode) ul.innerHTML += `<li>House ${h.id} <button onclick="quickJoin('${h.id}')">JOIN</button></li>`;
+            if(h.id !== roomCode) {
+                ul.innerHTML += `<li>House ${h.id} <button onclick="quickJoin('${h.id}')">JOIN</button></li>`;
+            }
         });
     });
 }
@@ -44,10 +52,10 @@ function createMap() {
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x111111}));
     floor.rotation.x = -Math.PI/2;
     scene.add(floor);
-    addWall(0, -25, 50, 1); // Back
-    addWall(-25, 0, 1, 50); // Left
-    addWall(25, 0, 1, 50);  // Right
-    addWall(-12, 10, 1, 30); // Garage Wall
+    addWall(0, -25, 50, 1); 
+    addWall(-25, 0, 1, 50); 
+    addWall(25, 0, 1, 50);  
+    addWall(-12, 10, 1, 30); 
     const gLight = new THREE.PointLight(0x00ffff, 1.5, 20);
     gLight.position.set(-18, 10, 5);
     scene.add(gLight);
@@ -70,7 +78,11 @@ function spawnItem(x, y, z, color, type, name) {
 
 function hostGame() { socket.emit('registerHouse', roomCode); startGame(); }
 function quickJoin(id) { document.getElementById('joinID').value = id; joinGame(); }
-function joinGame() { conn = peer.connect(document.getElementById('joinID').value); startGame(); }
+function joinGame() { 
+    const id = document.getElementById('joinID').value;
+    conn = peer.connect(id); 
+    startGame(); 
+}
 
 function startGame() {
     document.getElementById('menu').style.display = 'none';
@@ -79,8 +91,14 @@ function startGame() {
     const clock = setInterval(() => {
         gameTime--;
         document.getElementById('timer').innerText = gameTime + "s";
-        if(gameTime === 30) { scene.fog.color.set(0x330000); addChat('Narrator', 'The house is breathing...'); }
-        if(gameTime <= 0) { clearInterval(clock); addChat('Narrator', 'HIDE IN THE GARAGE!'); }
+        if(gameTime === 30) {
+            scene.fog.color.set(0x330000);
+            addChat('Narrator', 'The house is breathing...');
+        }
+        if(gameTime <= 0) {
+            clearInterval(clock);
+            addChat('Narrator', 'HIDE IN THE GARAGE!');
+        }
     }, 1000);
 }
 
@@ -88,9 +106,11 @@ function animate() {
     requestAnimationFrame(animate);
     let speed = isSprinting ? 0.45 : 0.22;
     if(isSprinting && (move.f || move.b)) {
-        energy = Math.max(0, energy - 0.25);
+        energy = Math.max(0, energy - 0.3);
         if(energy === 0) speed = 0.22;
-    } else { energy = Math.min(100, energy + 0.1); }
+    } else {
+        energy = Math.min(100, energy + 0.1);
+    }
     document.getElementById('en-fill').style.width = energy + "%";
     if(move.f) camera.position.z -= speed;
     if(move.b) camera.position.z += speed;
@@ -110,19 +130,26 @@ function animate() {
 }
 
 window.addEventListener('keydown', e => {
-    if(e.code === 'KeyW') move.f = true; if(e.code === 'KeyS') move.b = true;
-    if(e.code === 'KeyA') move.l = true; if(e.code === 'KeyD') move.r = true;
-    if(e.code === 'KeyE') move.interact = true; if(e.shiftKey) isSprinting = true;
+    if(e.code === 'KeyW') move.f = true;
+    if(e.code === 'KeyS') move.b = true;
+    if(e.code === 'KeyA') move.l = true;
+    if(e.code === 'KeyD') move.r = true;
+    if(e.code === 'KeyE') move.interact = true;
+    if(e.shiftKey) isSprinting = true;
 });
 window.addEventListener('keyup', e => {
-    if(e.code === 'KeyW') move.f = false; if(e.code === 'KeyS') move.b = false;
-    if(e.code === 'KeyA') move.l = false; if(e.code === 'KeyD') move.r = false;
+    if(e.code === 'KeyW') move.f = false;
+    if(e.code === 'KeyS') move.b = false;
+    if(e.code === 'KeyA') move.l = false;
+    if(e.code === 'KeyD') move.r = false;
     if(!e.shiftKey) isSprinting = false;
 });
 function addChat(s, m) {
     const log = document.getElementById('chat-log');
-    log.innerHTML += `<div><b>${s}:</b> ${m}</div>`;
-    log.scrollTop = log.scrollHeight;
+    if(log) {
+        log.innerHTML += `<div><b>${s}:</b> ${m}</div>`;
+        log.scrollTop = log.scrollHeight;
+    }
 }
 animate();
 
