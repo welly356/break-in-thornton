@@ -10,18 +10,16 @@
     <div id="menu">
         <h1 class="title">BREAK IN</h1>
         <p style="color:white; letter-spacing: 5px;">THORNTON: 104TH AVE</p>
-        <p style="color: #ffaa00; font-size: 12px; font-style: italic;">Inspired by Cracky4</p>
-        
         <div class="setup-box">
             <button class="btn" onclick="hostGame()">HOST HOUSE</button>
             <div id="server-list">
-                <h3 style="color:white; font-size: 12px;">ACTIVE HOUSES</h3>
-                <ul id="server-ul"><li>Searching...</li></ul>
+                <h3 style="font-size: 10px;">ACTIVE HOUSES</h3>
+                <ul id="server-ul"><li>Waking up server...</li></ul>
             </div>
             <input type="text" id="joinID" placeholder="4-Digit Code">
             <button class="btn" onclick="joinGame()">JOIN BY ID</button>
         </div>
-        <p id="my-id-display"></p>
+        <p id="my-id-display" style="font-size: 12px; color: #00ff00;"></p>
         <div class="discord-tag"><a href="https://discord.gg/mYdWExTQE" target="_blank">Join Discord</a></div>
     </div>
 
@@ -31,21 +29,11 @@
             <div class="stat-bar energy"><div id="en-fill"></div><span>ENERGY</span></div>
             <div class="timer-box" id="timer">60s</div>
         </div>
+        <div id="vc-status" style="position: absolute; top: 80px; left: 20px; color: #00ff00; font-size: 10px;">VC: OFF</div>
         <div id="interact-label">Press [E] to Interact</div>
-        <div id="mobile-controls">
-            <div class="d-pad">
-                <button ontouchstart="move.f=true" ontouchend="move.f=false">▲</button>
-                <div class="mid-row"><button ontouchstart="move.l=true" ontouchend="move.l=false">◀</button><button ontouchstart="move.r=true" ontouchend="move.r=false">▶</button></div>
-                <button ontouchstart="move.b=true" ontouchend="move.b=false">▼</button>
-            </div>
-            <div class="action-btns">
-                <button class="sprint-btn" ontouchstart="isSprinting=true" ontouchend="isSprinting=false">RUN</button>
-                <button onclick="move.interact=true">E</button>
-            </div>
-        </div>
         <div id="comms-panel">
             <div id="chat-log"></div>
-            <input type="text" id="chat-msg" placeholder="Chat...">
+            <input type="text" id="chat-msg" placeholder="Press Enter to Chat...">
         </div>
     </div>
 
