@@ -1,5 +1,5 @@
 const REPLIT_URL = "https://.thornton-break-in.acharyasarthak0.replit.app" 
-const socket = io(REPLIT_URL); 
+const socket = io(REPLIT_URL, { transports: ['websocket'] });
 
 let scene, camera, renderer, peer, conn, flashlight;
 let move = { f: false, b: false, l: false, r: false, interact: false };
