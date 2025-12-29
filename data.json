@@ -1,0 +1,22 @@
+{
+  "houseName": "Thornton 104th Ave",
+  "chapter": 1,
+  "mapData": {
+    "walls": [
+      { "x": 0, "z": -25, "w": 50, "d": 2, "color": "0x222222" },
+      { "x": -25, "z": 0, "w": 2, "d": 50, "color": "0x222222" },
+      { "x": 25, "z": 0, "w": 2, "d": 50, "color": "0x222222" },
+      { "x": 0, "z": 25, "w": 50, "d": 2, "color": "0x222222" },
+      { "x": -12, "z": 10, "w": 1, "d": 30, "color": "0x331111" }
+    ],
+    "spawnPoints": [
+      { "x": 0, "y": 5, "z": 20 }
+    ]
+  },
+  "dialogue": [
+    { "time": 60, "text": "Narrator: Welcome home. Lock the doors.", "color": "white" },
+    { "time": 45, "text": "Narrator: Did you hear that? Check the garage.", "color": "white" },
+    { "time": 30, "text": "Narrator: The house is breathing... it's too late.", "color": "yellow" },
+    { "time": 10, "text": "Narrator: RUN TO THE GARAGE NOW!!", "color": "red" }
+  ]
+}
