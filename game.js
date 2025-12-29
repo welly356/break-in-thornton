@@ -29,7 +29,6 @@ async function init() {
     peer = new Peer(roomCode); 
     peer.on('open', id => { document.getElementById('my-id-display').innerText = "YOUR ID: " + id; });
     
-    // Handle Incoming Players
     peer.on('connection', c => {
         conn = c;
         setupDataListener(c);
@@ -60,7 +59,8 @@ function createAvatar(id) {
 function setupDataListener(c) {
     c.on('data', data => {
         if(data.type === 'move') {
-            if(otherPlayers[c.peer]) otherPlayers[c.peer].position.set(data.x, 1.5, data.z);
+            if(!otherPlayers[c.peer]) createAvatar(c.peer);
+            otherPlayers[c.peer].position.set(data.x, 1.5, data.z);
         }
         if(data.type === 'chat') addChat('Player', data.msg);
     });
@@ -101,7 +101,8 @@ function startGame() {
     init();
     setInterval(() => {
         gameTime--;
-        document.getElementById('timer').innerText = gameTime + "s";
+        const timer = document.getElementById('timer');
+        if(timer) timer.innerText = gameTime + "s";
         if(window.gameDialogue) {
             const line = window.gameDialogue.find(d => d.time === gameTime);
             if(line) addChat('Narrator', line.text);
@@ -139,6 +140,7 @@ window.addEventListener('keydown', e => {
         }
     }
 });
+
 window.addEventListener('keyup', e => {
     if(e.code === 'KeyW') move.f = false;
     if(e.code === 'KeyS') move.b = false;
