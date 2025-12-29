@@ -1,7 +1,9 @@
-const REPLIT_URL = "https://thornton-break-in.acharyasarthak0.replit.app";
+// FIXED: Variable name must be REPLIT_URL, not a link
+const REPLIT_URL = "https://thornton-break-in.acharyasarthak0.replit.app"; 
 const socket = io(REPLIT_URL, { transports: ['websocket'] }); 
 
 let scene, camera, renderer, peer, conn, flashlight;
+// ... (rest of your code stays the same)
 let move = { f: false, b: false, l: false, r: false, interact: false };
 let isSprinting = false, gameTime = 60, energy = 100;
 let interactables = [], otherPlayers = {};
