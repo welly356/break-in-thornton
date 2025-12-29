@@ -1,9 +1,9 @@
 const REPLIT_URL = "https://thornton-break-in.acharyasarthak0.replit.app"; 
 const socket = io(REPLIT_URL, { transports: ['websocket'] }); 
 
-let scene, camera, renderer, peer, conn, flashlight;
+let scene, camera, renderer, peer, conn, localStream;
 let move = { f: false, b: false, l: false, r: false, interact: false };
-let isSprinting = false, gameTime = 60, energy = 100, hp = 100;
+let isSprinting = false, gameTime = 60, energy = 100;
 let interactables = [];
 const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
@@ -19,7 +19,7 @@ function init() {
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.1); 
     scene.add(ambient);
-    flashlight = new THREE.SpotLight(0xffffff, 5, 45, Math.PI/6, 0.5);
+    const flashlight = new THREE.SpotLight(0xffffff, 5, 40, Math.PI/6, 0.5);
     camera.add(flashlight);
     flashlight.target = camera;
     scene.add(camera);
@@ -27,25 +27,36 @@ function init() {
     createMap();
     camera.position.set(0, 5, 25);
 
-    peer = new Peer(roomCode); 
-    peer.on('open', id => { 
-        document.getElementById('my-id-display').innerText = "YOUR ID: " + id; 
-    });
-    peer.on('connection', c => { 
-        conn = c; 
-        addChat('System', 'A player joined!'); 
+    // --- VOICE CHAT & PEER ---
+    peer = new Peer(roomCode);
+    navigator.mediaDevices.getUserMedia({ video: false, audio: true }).then(stream => {
+        localStream = stream;
+        document.getElementById('vc-status').innerText = "VC: ACTIVE";
     });
 
-    socket.on('updateServerList', (houses) => {
+    peer.on('call', call => {
+        call.answer(localStream);
+        call.on('stream', remoteStream => playStream(remoteStream));
+    });
+
+    peer.on('connection', c => {
+        conn = c;
+        setupConn();
+    });
+
+    socket.on('updateServerList', houses => {
         const ul = document.getElementById('server-ul');
-        if(!ul) return;
-        ul.innerHTML = houses.length ? "" : "<li>No active houses</li>";
+        ul.innerHTML = houses.length ? "" : "<li>No Houses Open</li>";
         houses.forEach(h => {
-            if(h.id !== roomCode) {
-                ul.innerHTML += `<li>House ${h.id} <button onclick="quickJoin('${h.id}')">JOIN</button></li>`;
-            }
+            if(h.id !== roomCode) ul.innerHTML += `<li>ID: ${h.id} <button onclick="quickJoin('${h.id}')">JOIN</button></li>`;
         });
     });
+}
+
+function playStream(stream) {
+    const audio = new Audio();
+    audio.srcObject = stream;
+    audio.play();
 }
 
 function createMap() {
@@ -55,11 +66,10 @@ function createMap() {
     addWall(0, -25, 50, 1); 
     addWall(-25, 0, 1, 50); 
     addWall(25, 0, 1, 50);  
-    addWall(-12, 10, 1, 30); 
+    addWall(-12, 10, 1, 30); // Garage
     const gLight = new THREE.PointLight(0x00ffff, 1.5, 20);
     gLight.position.set(-18, 10, 5);
     scene.add(gLight);
-    spawnItem(18, 1, -15, 0xffaa00, 'food', 'Pizza');
 }
 
 function addWall(x, z, w, d) {
@@ -68,19 +78,12 @@ function addWall(x, z, w, d) {
     scene.add(wall);
 }
 
-function spawnItem(x, y, z, color, type, name) {
-    const item = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 2), new THREE.MeshStandardMaterial({color: color}));
-    item.position.set(x, y, z);
-    item.userData = { type, name };
-    scene.add(item);
-    interactables.push(item);
-}
-
 function hostGame() { socket.emit('registerHouse', roomCode); startGame(); }
 function quickJoin(id) { document.getElementById('joinID').value = id; joinGame(); }
 function joinGame() { 
     const id = document.getElementById('joinID').value;
-    conn = peer.connect(id); 
+    conn = peer.connect(id);
+    peer.call(id, localStream);
     startGame(); 
 }
 
@@ -88,44 +91,24 @@ function startGame() {
     document.getElementById('menu').style.display = 'none';
     document.getElementById('ui').style.display = 'block';
     init();
-    const clock = setInterval(() => {
-        gameTime--;
-        document.getElementById('timer').innerText = gameTime + "s";
-        if(gameTime === 30) {
-            scene.fog.color.set(0x330000);
-            addChat('Narrator', 'The house is breathing...');
-        }
-        if(gameTime <= 0) {
-            clearInterval(clock);
-            addChat('Narrator', 'HIDE IN THE GARAGE!');
-        }
-    }, 1000);
 }
 
 function animate() {
     requestAnimationFrame(animate);
+    if (!renderer) return; 
+
     let speed = isSprinting ? 0.45 : 0.22;
     if(isSprinting && (move.f || move.b)) {
         energy = Math.max(0, energy - 0.3);
         if(energy === 0) speed = 0.22;
-    } else {
-        energy = Math.min(100, energy + 0.1);
-    }
+    } else { energy = Math.min(100, energy + 0.1); }
+    
     document.getElementById('en-fill').style.width = energy + "%";
     if(move.f) camera.position.z -= speed;
     if(move.b) camera.position.z += speed;
     if(move.l) camera.position.x -= speed;
     if(move.r) camera.position.x += speed;
-    interactables.forEach(obj => {
-        if(camera.position.distanceTo(obj.position) < 5) {
-            document.getElementById('interact-label').style.display = 'block';
-            if(move.interact && obj.userData.type === 'food') {
-                energy = Math.min(100, energy + 40);
-                scene.remove(obj);
-                move.interact = false;
-            }
-        }
-    });
+
     renderer.render(scene, camera);
 }
 
@@ -136,7 +119,9 @@ window.addEventListener('keydown', e => {
     if(e.code === 'KeyD') move.r = true;
     if(e.code === 'KeyE') move.interact = true;
     if(e.shiftKey) isSprinting = true;
+    if(e.code === 'Enter') handleChat();
 });
+
 window.addEventListener('keyup', e => {
     if(e.code === 'KeyW') move.f = false;
     if(e.code === 'KeyS') move.b = false;
@@ -144,13 +129,33 @@ window.addEventListener('keyup', e => {
     if(e.code === 'KeyD') move.r = false;
     if(!e.shiftKey) isSprinting = false;
 });
-function addChat(s, m) {
-    const log = document.getElementById('chat-log');
-    if(log) {
-        log.innerHTML += `<div><b>${s}:</b> ${m}</div>`;
-        log.scrollTop = log.scrollHeight;
+
+function handleChat() {
+    const input = document.getElementById('chat-msg');
+    if (document.activeElement === input) {
+        if (input.value) {
+            if (conn) conn.send({type: 'chat', msg: input.value});
+            addChat('You', input.value);
+            input.value = "";
+        }
+        input.blur();
+    } else {
+        input.focus();
     }
 }
+
+function addChat(s, m) {
+    const log = document.getElementById('chat-log');
+    log.innerHTML += `<div><b>${s}:</b> ${m}</div>`;
+    log.scrollTop = log.scrollHeight;
+}
+
+function setupConn() {
+    conn.on('data', data => {
+        if(data.type === 'chat') addChat('Friend', data.msg);
+    });
+}
+
 animate();
 
 
