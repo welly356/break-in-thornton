@@ -1,18 +1,19 @@
 const REPLIT_URL = "https://thornton-break-in.acharyasarthak0.replit.app"; 
-// This setup retries every 2 seconds if the connection fails
-const socket = io(REPLIT_URL, { 
-    transports: ['polling', 'websocket'],
-    reconnection: true,
-    reconnectionDelay: 2000 
-}); 
+let socket;
 
-let scene, camera, renderer, peer, conn, flashlight;
+// Safety catch: Try to connect, but don't crash if blocked
+try {
+    socket = io(REPLIT_URL, { transports: ['polling', 'websocket'], timeout: 5000 });
+} catch (e) {
+    console.log("Running in Solo Mode (Server Unreachable)");
+}
+
+let scene, camera, renderer, flashlight;
 let move = { f: false, b: false, l: false, r: false, interact: false };
 let isSprinting = false, yaw = 0, pitch = 0;
 let interactables = [];
-const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
-async function init() {
+function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020202);
     scene.fog = new THREE.FogExp2(0x000000, 0.04);
@@ -22,33 +23,31 @@ async function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
+    // Pointer Lock for 360 rotation
     document.body.addEventListener('click', () => { document.body.requestPointerLock(); });
 
-    // Lighting
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x000000, 0.3));
-    scene.add(new THREE.AmbientLight(0xffffff, 0.2));
-    flashlight = new THREE.SpotLight(0xffffff, 15, 60, Math.PI/4, 0.3);
+    // Brighter Gameplay Lighting
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x000000, 0.4));
+    flashlight = new THREE.SpotLight(0xffffff, 20, 60, Math.PI/4, 0.3);
     camera.add(flashlight);
     flashlight.target = new THREE.Object3D();
     camera.add(flashlight.target);
     flashlight.target.position.set(0, 0, -1);
     scene.add(camera);
 
-    createMap();
+    // Build Room
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x222222}));
+    floor.rotation.x = -Math.PI/2;
+    scene.add(floor);
+    
+    spawnItem(5, 1, -5, 0xffaa00, 'Pizza');
     animate();
 }
 
-function createMap() {
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x333333}));
-    floor.rotation.x = -Math.PI/2;
-    scene.add(floor);
-    spawnItem(5, 1, -5, 0xffaa00, 'food', 'Pizza');
-}
-
-function spawnItem(x, y, z, color, type, name) {
+function spawnItem(x, y, z, color, name) {
     const item = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 1), new THREE.MeshStandardMaterial({color: color}));
     item.position.set(x, y, z);
-    item.userData = { type, name };
+    item.userData = { name };
     scene.add(item);
     interactables.push(item);
 }
@@ -57,9 +56,9 @@ function animate() {
     requestAnimationFrame(animate);
     if (!renderer) return;
 
-    let targetFOV = isSprinting ? 88 : 75;
+    // Movement & Sprint
     let speed = isSprinting ? 0.35 : 0.18;
-    camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.1);
+    camera.fov = THREE.MathUtils.lerp(camera.fov, isSprinting ? 88 : 75, 0.1);
     camera.updateProjectionMatrix();
 
     const dir = new THREE.Vector3();
@@ -72,13 +71,17 @@ function animate() {
     if(move.l) camera.position.addScaledVector(side, speed);
     if(move.r) camera.position.addScaledVector(side, -speed);
 
-    // Interaction Check
+    // Interaction check
     interactables.forEach(obj => {
-        if(camera.position.distanceTo(obj.position) < 5 && move.interact) {
-            addChat('System', `Picked up: ${obj.userData.name}`);
-            scene.remove(obj);
-            interactables = interactables.filter(i => i !== obj);
-            move.interact = false;
+        if(camera.position.distanceTo(obj.position) < 4) {
+            document.getElementById('interact-label').style.display = 'block';
+            if(move.interact) {
+                addChat('System', `You found the ${obj.userData.name}!`);
+                scene.remove(obj);
+                interactables = interactables.filter(i => i !== obj);
+            }
+        } else {
+            document.getElementById('interact-label').style.display = 'none';
         }
     });
 
@@ -113,23 +116,14 @@ window.addEventListener('keyup', e => {
     if(!e.shiftKey) isSprinting = false;
 });
 
-// Social UI Fix
-window.hostGame = () => { socket.emit('registerHouse', roomCode); startGame(); };
-function startGame() { 
+function addChat(s, m) {
+    const log = document.getElementById('chat-log');
+    if(log) log.innerHTML += `<div><b>${s}:</b> ${m}</div>`;
+}
+
+window.hostGame = () => { 
+    if(socket) socket.emit('registerHouse', '1234');
     document.getElementById('menu').style.display = 'none'; 
     document.getElementById('ui').style.display = 'block'; 
     init(); 
-}
-function addChat(s, m) {
-    const log = document.getElementById('chat-log');
-    if(log) { log.innerHTML += `<div><b>${s}:</b> ${m}</div>`; log.scrollTop = log.scrollHeight; }
-}
-
-socket.on('updateServerList', (houses) => {
-    const ul = document.getElementById('server-ul');
-    if(!ul) return;
-    ul.innerHTML = houses.length ? "" : "<li>No active houses</li>";
-    houses.forEach(h => {
-        if(h.id !== roomCode) ul.innerHTML += `<li>House ${h.id} <button onclick="window.quickJoin('${h.id}')">JOIN</button></li>`;
-    });
-});
+};
