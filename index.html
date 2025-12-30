@@ -1,45 +1,14 @@
-<!DOCTYPE html>
-<link rel="icon" href="data:,">
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BREAK IN: THORNTON</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div id="menu">
-        <h1 class="title">BREAK IN</h1>
-        <p style="color:white; letter-spacing: 5px;">THORNTON: 104TH AVE</p>
-        <div class="setup-box">
-            <button class="btn" onclick="hostGame()">HOST HOUSE</button>
-            <div id="server-list">
-                <h3 style="font-size: 10px; margin: 5px;">ACTIVE HOUSES</h3>
-                <ul id="server-ul"><li>Waking up server...</li></ul>
-            </div>
-            <input type="text" id="joinID" placeholder="4-Digit Code">
-            <button class="btn" onclick="joinGame()">JOIN BY ID</button>
-        </div>
-        <p id="my-id-display" style="font-size: 12px; color: #00ff00;"></p>
-        <div class="discord-tag"><a href="https://discord.gg/mYdWExTQE" target="_blank">Join Discord</a></div>
-    </div>
+const peer = new Peer();
+let localStream;
 
-    <div id="ui" style="display: none;">
-        <div class="top-hud">
-            <div class="stat-bar"><div id="hp-fill"></div><span>HP</span></div>
-            <div class="stat-bar energy"><div id="en-fill"></div><span>ENERGY</span></div>
-            <div class="timer-box" id="timer">60s</div>
-        </div>
-        <div id="interact-label">Press [E] to Interact</div>
-        <div id="comms-panel">
-            <div id="chat-log"></div>
-            <input type="text" id="chat-msg" placeholder="Press Enter to Chat...">
-        </div>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
-    <script src="game.js"></script>
-</body>
-</html>
+async function startSocialVoice() {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    peer.on('call', call => {
+        call.answer(localStream);
+        call.on('stream', remoteStream => {
+            const audio = new Audio();
+            audio.srcObject = remoteStream;
+            audio.play();
+        });
+    });
+}
