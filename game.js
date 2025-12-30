@@ -1,129 +1,93 @@
-const REPLIT_URL = "https://thornton-break-in.acharyasarthak0.replit.app"; 
-let socket;
+// --- CONFIG & DATA ---
+const mapConfig = {
+    "houseName": "Thornton 104th Ave",
+    "lanes": [-8, 0, 8], // Subway Surfer Lanes
+    "currentLane": 1
+};
 
-// Safety catch: Try to connect, but don't crash if blocked
-try {
-    socket = io(REPLIT_URL, { transports: ['polling', 'websocket'], timeout: 5000 });
-} catch (e) {
-    console.log("Running in Solo Mode (Server Unreachable)");
-}
+let scene, camera, renderer, spiderMan;
+let targetX = 0;
 
-let scene, camera, renderer, flashlight;
-let move = { f: false, b: false, l: false, r: false, interact: false };
-let isSprinting = false, yaw = 0, pitch = 0;
-let interactables = [];
-
-function init() {
+// --- INITIALIZATION ---
+async function init() {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020202);
-    scene.fog = new THREE.FogExp2(0x000000, 0.04);
+    scene.background = new THREE.Color(0x050505);
+    scene.fog = new THREE.FogExp2(0x000000, 0.08); // Thick Granny Fog
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Pointer Lock for 360 rotation
-    document.body.addEventListener('click', () => { document.body.requestPointerLock(); });
-
-    // Brighter Gameplay Lighting
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x000000, 0.4));
-    flashlight = new THREE.SpotLight(0xffffff, 20, 60, Math.PI/4, 0.3);
-    camera.add(flashlight);
-    flashlight.target = new THREE.Object3D();
-    camera.add(flashlight.target);
-    flashlight.target.position.set(0, 0, -1);
+    // Realistic Lighting (Spotlight for that Spider-Man/Granny vibe)
+    const flash = new THREE.SpotLight(0xffffff, 25, 50, 0.4);
+    flash.position.set(0, 5, 0);
+    camera.add(flash);
     scene.add(camera);
 
-    // Build Room
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x222222}));
-    floor.rotation.x = -Math.PI/2;
-    scene.add(floor);
-    
-    spawnItem(5, 1, -5, 0xffaa00, 'Pizza');
+    buildThorntonHouse();
+    spawnSpiderMan();
     animate();
 }
 
-function spawnItem(x, y, z, color, name) {
-    const item = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 1), new THREE.MeshStandardMaterial({color: color}));
-    item.position.set(x, y, z);
-    item.userData = { name };
-    scene.add(item);
-    interactables.push(item);
+// --- SUBWAY SURFER LANE LOGIC (C# Style) ---
+window.addEventListener('keydown', e => {
+    if(e.code === 'KeyA' && mapConfig.currentLane > 0) {
+        mapConfig.currentLane--;
+    }
+    if(e.code === 'KeyD' && mapConfig.currentLane < 2) {
+        mapConfig.currentLane++;
+    }
+    targetX = mapConfig.lanes[mapConfig.currentLane];
+});
+
+function buildThorntonHouse() {
+    // Reading your JSON data for the walls
+    const wallMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x222222, 
+        roughness: 0.9,
+        metalness: 0.1 
+    });
+
+    const walls = [
+        { "x": 0, "z": -25, "w": 50, "d": 2 },
+        { "x": -25, "z": 0, "w": 2, "d": 50 },
+        { "x": 25, "z": 0, "w": 2, "d": 50 },
+        { "x": 0, "z": 25, "w": 50, "d": 2 }
+    ];
+
+    walls.forEach(data => {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(data.w, 15, data.d), wallMaterial);
+        wall.position.set(data.x, 7.5, data.z);
+        scene.add(wall);
+    });
 }
 
+function spawnSpiderMan() {
+    // For "Realistic Graphics," we use a Sprite with high-res textures
+    const loader = new THREE.TextureLoader();
+    const spideyTex = loader.load('https://i.imgur.com/your-realistic-spiderman.png'); 
+    const mat = new THREE.SpriteMaterial({ map: spideyTex });
+    spiderMan = new THREE.Sprite(mat);
+    spiderMan.scale.set(5, 8, 1);
+    spiderMan.position.y = 4;
+    scene.add(spiderMan);
+}
+
+// --- MAIN LOOP ---
 function animate() {
     requestAnimationFrame(animate);
-    if (!renderer) return;
 
-    // Movement & Sprint
-    let speed = isSprinting ? 0.35 : 0.18;
-    camera.fov = THREE.MathUtils.lerp(camera.fov, isSprinting ? 88 : 75, 0.1);
-    camera.updateProjectionMatrix();
-
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-    dir.y = 0; dir.normalize();
-    const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
-
-    if(move.f) camera.position.addScaledVector(dir, speed);
-    if(move.b) camera.position.addScaledVector(dir, -speed);
-    if(move.l) camera.position.addScaledVector(side, speed);
-    if(move.r) camera.position.addScaledVector(side, -speed);
-
-    // Interaction check
-    interactables.forEach(obj => {
-        if(camera.position.distanceTo(obj.position) < 4) {
-            document.getElementById('interact-label').style.display = 'block';
-            if(move.interact) {
-                addChat('System', `You found the ${obj.userData.name}!`);
-                scene.remove(obj);
-                interactables = interactables.filter(i => i !== obj);
-            }
-        } else {
-            document.getElementById('interact-label').style.display = 'none';
-        }
-    });
+    // Subway Surfer Smooth Lane Slide (Interpolation)
+    if(spiderMan) {
+        spiderMan.position.x = THREE.MathUtils.lerp(spiderMan.position.x, targetX, 0.15);
+        
+        // Sync camera to follow Spider-Man like Subway Surfers
+        camera.position.x = spiderMan.position.x;
+        camera.position.z = spiderMan.position.z + 20;
+        camera.position.y = 10;
+        camera.lookAt(spiderMan.position);
+    }
 
     renderer.render(scene, camera);
 }
-
-// Controls
-window.addEventListener('mousemove', (e) => {
-    if (document.pointerLockElement === document.body) {
-        yaw -= e.movementX * 0.002;
-        pitch -= e.movementY * 0.002;
-        pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
-        camera.rotation.set(pitch, yaw, 0, 'YXZ');
-    }
-});
-
-window.addEventListener('keydown', e => {
-    if(e.code === 'KeyW') move.f = true;
-    if(e.code === 'KeyS') move.b = true;
-    if(e.code === 'KeyA') move.l = true;
-    if(e.code === 'KeyD') move.r = true;
-    if(e.code === 'KeyE') move.interact = true;
-    if(e.shiftKey) isSprinting = true;
-});
-
-window.addEventListener('keyup', e => {
-    if(e.code === 'KeyW') move.f = false;
-    if(e.code === 'KeyS') move.b = false;
-    if(e.code === 'KeyA') move.l = false;
-    if(e.code === 'KeyD') move.r = false;
-    if(e.code === 'KeyE') move.interact = false;
-    if(!e.shiftKey) isSprinting = false;
-});
-
-function addChat(s, m) {
-    const log = document.getElementById('chat-log');
-    if(log) log.innerHTML += `<div><b>${s}:</b> ${m}</div>`;
-}
-
-window.hostGame = () => { 
-    if(socket) socket.emit('registerHouse', '1234');
-    document.getElementById('menu').style.display = 'none'; 
-    document.getElementById('ui').style.display = 'block'; 
-    init(); 
-};
