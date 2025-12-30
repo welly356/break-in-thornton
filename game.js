@@ -1,38 +1,29 @@
-// 1. Connection Config
 const REPLIT_URL = "https://thornton-break-in.acharyasarthak0.replit.app"; 
-const socket = io(REPLIT_URL, { transports: ['websocket'] }); 
+const socket = io(REPLIT_URL, { transports: ['polling', 'websocket'] }); 
 
-// 2. Global Variables
 let scene, camera, renderer, peer, conn, flashlight;
 let move = { f: false, b: false, l: false, r: false, interact: false };
 let isSprinting = false, yaw = 0, pitch = 0;
 let interactables = [], otherPlayers = {};
 const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
-// 3. Initialization
 async function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x020202);
-    // Lower fog density for better visibility (0.04)
-    scene.fog = new THREE.FogExp2(0x000000, 0.04);
+    scene.fog = new THREE.FogExp2(0x000000, 0.04); // Lighter fog
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Click to enable 360 Mouse Movement
-    document.body.addEventListener('click', () => {
-        document.body.requestPointerLock();
-    });
+    document.body.addEventListener('click', () => { document.body.requestPointerLock(); });
 
-    // Lighting Setup
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x000000, 0.25); 
-    scene.add(hemiLight);
-
-    const ambient = new THREE.AmbientLight(0xffffff, 0.15); 
+    // --- BRIGHTER LIGHTING ---
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x000000, 0.3); 
+    scene.add(hemi);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.2); 
     scene.add(ambient);
-
     flashlight = new THREE.SpotLight(0xffffff, 15, 60, Math.PI/4, 0.3);
     camera.add(flashlight);
     flashlight.target = new THREE.Object3D();
@@ -44,27 +35,19 @@ async function init() {
     animate();
 }
 
-// 4. Map & Items
 function createMap() {
-    // Floor
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x333333}));
     floor.rotation.x = -Math.PI/2;
     scene.add(floor);
 
-    // Initial Walls
-    addWall(0, -25, 50, 2); // Back Wall
-    addWall(-25, 0, 2, 50); // Left Wall
-    addWall(25, 0, 2, 50);  // Right Wall
-    addWall(0, 25, 50, 2);  // Front Wall
+    // Walls
+    [[0,-25,50,2], [-25,0,2,50], [25,0,2,50], [0,25,50,2]].forEach(w => {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(w[2], 12, w[3]), new THREE.MeshStandardMaterial({color: 0x555555}));
+        wall.position.set(w[0], 6, w[1]);
+        scene.add(wall);
+    });
 
-    // Test Interaction Item
     spawnItem(5, 1, -5, 0xffaa00, 'food', 'Pizza');
-}
-
-function addWall(x, z, w, d) {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 12, d), new THREE.MeshStandardMaterial({color: 0x555555}));
-    wall.position.set(x, 6, z);
-    scene.add(wall);
 }
 
 function spawnItem(x, y, z, color, type, name) {
@@ -75,56 +58,48 @@ function spawnItem(x, y, z, color, type, name) {
     interactables.push(item);
 }
 
-// 5. Core Animation Loop
 function animate() {
     requestAnimationFrame(animate);
     if (!renderer) return;
 
-    // FOV Sprint Effect
+    // Sprint FOV
     let targetFOV = isSprinting ? 88 : 75;
     let speed = isSprinting ? 0.35 : 0.18;
-    if (camera.fov !== targetFOV) {
-        camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.1);
-        camera.updateProjectionMatrix();
-    }
+    camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.1);
+    camera.updateProjectionMatrix();
 
-    // 360 Movement Logic
-    const direction = new THREE.Vector3();
-    camera.getWorldDirection(direction);
-    direction.y = 0; 
-    direction.normalize();
-    const side = new THREE.Vector3().crossVectors(camera.up, direction).normalize();
+    // 360 Movement
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    dir.y = 0; dir.normalize();
+    const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
 
-    if(move.f) camera.position.addScaledVector(direction, speed);
-    if(move.b) camera.position.addScaledVector(direction, -speed);
+    if(move.f) camera.position.addScaledVector(dir, speed);
+    if(move.b) camera.position.addScaledVector(dir, -speed);
     if(move.l) camera.position.addScaledVector(side, speed);
     if(move.r) camera.position.addScaledVector(side, -speed);
 
-    // Interaction Check
-    let foundInteractable = false;
+    // Interactions
+    let found = false;
     interactables.forEach(obj => {
-        const dist = camera.position.distanceTo(obj.position);
-        if(dist < 5) {
-            foundInteractable = true;
+        if(camera.position.distanceTo(obj.position) < 5) {
+            found = true;
             if(move.interact) {
                 addChat('System', `Picked up: ${obj.userData.name}`);
                 scene.remove(obj);
                 interactables = interactables.filter(i => i !== obj);
-                move.interact = false;
             }
         }
     });
-    document.getElementById('interact-label').style.display = foundInteractable ? 'block' : 'none';
+    document.getElementById('interact-label').style.display = found ? 'block' : 'none';
 
-    // Update Multiplayer Positions
-    if(conn && conn.open) {
-        conn.send({ type: 'move', x: camera.position.x, z: camera.position.z, ry: yaw });
-    }
+    // Sync
+    if(conn && conn.open) conn.send({ type: 'move', x: camera.position.x, z: camera.position.z, ry: yaw });
 
     renderer.render(scene, camera);
 }
 
-// 6. Event Listeners
+// Controls
 window.addEventListener('mousemove', (e) => {
     if (document.pointerLockElement === document.body) {
         yaw -= e.movementX * 0.002;
@@ -150,7 +125,6 @@ window.addEventListener('keydown', e => {
         }
     }
 });
-
 window.addEventListener('keyup', e => {
     if(e.code === 'KeyW') move.f = false;
     if(e.code === 'KeyS') move.b = false;
@@ -160,13 +134,14 @@ window.addEventListener('keyup', e => {
     if(!e.shiftKey) isSprinting = false;
 });
 
-// 7. Lobby & Peer Management
+// Multiplayer Connections
 window.hostGame = () => { socket.emit('registerHouse', roomCode); startGame(); };
 window.joinGame = () => { 
     const id = document.getElementById('joinID').value;
     conn = peer.connect(id);
-    conn.on('open', () => { startGame(); });
+    conn.on('open', () => { setupData(conn); startGame(); });
 };
+window.quickJoin = (id) => { document.getElementById('joinID').value = id; window.joinGame(); };
 
 function startGame() { 
     document.getElementById('menu').style.display = 'none'; 
@@ -179,22 +154,23 @@ function addChat(s, m) {
     if(log) { log.innerHTML += `<div><b>${s}:</b> ${m}</div>`; log.scrollTop = log.scrollHeight; }
 }
 
+function setupData(c) {
+    c.on('data', data => { if(data.type === 'chat') addChat('Player', data.msg); });
+}
+
 peer = new Peer(roomCode);
 peer.on('open', id => { document.getElementById('my-id-display').innerText = "YOUR ID: " + id; });
-peer.on('connection', c => {
-    conn = c;
-    addChat('System', 'A player joined!');
-    c.on('data', data => {
-        if(data.type === 'chat') addChat('Player', data.msg);
-    });
+peer.on('connection', c => { 
+    conn = c; 
+    setupData(c); 
+    addChat('System', 'A player joined!'); 
 });
 
 socket.on('updateServerList', (houses) => {
     const ul = document.getElementById('server-ul');
     if(!ul) return;
-    ul.innerHTML = houses.length ? "" : "<li>Searching...</li>";
+    ul.innerHTML = houses.length ? "" : "<li>No active houses</li>";
     houses.forEach(h => {
-        if(h.id !== roomCode) ul.innerHTML += `<li>House ${h.id} <button onclick="window.quickJoin('${h.id}')">JOIN</button></li>`;
+        if(h.id !== roomCode) ul.innerHTML += `<li>House ${h.id} <button class="btn-s" onclick="window.quickJoin('${h.id}')">JOIN</button></li>`;
     });
 });
-window.quickJoin = (id) => { document.getElementById('joinID').value = id; window.joinGame(); };
