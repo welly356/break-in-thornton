@@ -2,13 +2,17 @@
   "houseName": "Thornton 104th Ave",
   "chapter": 1,
   "mapData": {
-    "walls": [
-      { "x": 0, "z": -25, "w": 50, "d": 2, "color": "0x222222" },
-      { "x": -25, "z": 0, "w": 2, "d": 50, "color": "0x222222" },
-      { "x": 25, "z": 0, "w": 2, "d": 50, "color": "0x222222" },
-      { "x": 0, "z": 25, "w": 50, "d": 2, "color": "0x222222" }
+    "rooms": [
+      { "id": "entryWay", "x": -25, "z": 0, "color": "0xff0000" },
+      { "id": "mainHall", "x": 0, "z": 0, "color": "0xff0000" },
+      { "id": "garage", "x": 25, "z": 0, "color": "0xff0000" }
     ],
-    "spawnPoints": [ { "x": 0, "y": 5, "z": 20 } ]
+    "walls": [
+      { "x": 0, "z": -25, "w": 50, "d": 2 },
+      { "x": -25, "z": 0, "w": 2, "d": 50 },
+      { "x": 25, "z": 0, "w": 2, "d": 50 },
+      { "x": 0, "z": 25, "w": 50, "d": 2 }
+    ]
   },
   "dialogue": [
     { "time": 58, "text": "Narrator: Welcome home. Lock the doors." },
