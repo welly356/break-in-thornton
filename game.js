@@ -1,11 +1,9 @@
-// FIXED: Variable name must be REPLIT_URL, not a link
 const REPLIT_URL = "https://thornton-break-in.acharyasarthak0.replit.app"; 
 const socket = io(REPLIT_URL, { transports: ['websocket'] }); 
 
 let scene, camera, renderer, peer, conn, flashlight;
-// ... (rest of your code stays the same)
 let move = { f: false, b: false, l: false, r: false, interact: false };
-let isSprinting = false, gameTime = 60, energy = 100;
+let yaw = 0, pitch = 0; // For 360 Rotation
 let interactables = [], otherPlayers = {};
 const roomCode = Math.floor(1000 + Math.random() * 9000).toString();
 
@@ -19,143 +17,129 @@ async function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
+    // Click to enable 360 Mouse Movement
+    document.body.addEventListener('click', () => {
+        document.body.requestPointerLock();
+    });
+
     const ambient = new THREE.AmbientLight(0xffffff, 0.1); 
     scene.add(ambient);
     flashlight = new THREE.SpotLight(0xffffff, 5, 40, Math.PI/6, 0.5);
     camera.add(flashlight);
-    flashlight.target = camera;
+    flashlight.target = new THREE.Object3D();
+    camera.add(flashlight.target);
+    flashlight.target.position.set(0, 0, -1);
     scene.add(camera);
 
-    await loadHouseData();
-
-    peer = new Peer(roomCode); 
-    peer.on('open', id => { document.getElementById('my-id-display').innerText = "YOUR ID: " + id; });
-    
-    peer.on('connection', c => {
-        conn = c;
-        setupDataListener(c);
-        addChat('System', 'A player joined your house!');
-        createAvatar(c.peer);
-    });
-
-    socket.on('updateServerList', (houses) => {
-        const ul = document.getElementById('server-ul');
-        if(!ul) return;
-        ul.innerHTML = houses.length ? "" : "<li>No active houses</li>";
-        houses.forEach(h => {
-            if(h.id !== roomCode) ul.innerHTML += `<li>House ${h.id} <button class="btn-s" onclick="quickJoin('${h.id}')">JOIN</button></li>`;
-        });
-    });
+    createMap();
+    animate();
 }
 
-function createAvatar(id) {
-    const group = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 1), new THREE.MeshStandardMaterial({color: 0x00ff00}));
-    const head = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({color: 0xffdbac}));
-    head.position.y = 2;
-    group.add(body, head);
-    scene.add(group);
-    otherPlayers[id] = group;
-}
+// 360 Mouse Movement Logic
+window.addEventListener('mousemove', (e) => {
+    if (document.pointerLockElement === document.body) {
+        yaw -= e.movementX * 0.002;
+        pitch -= e.movementY * 0.002;
+        pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+        camera.rotation.set(pitch, yaw, 0, 'YXZ');
+    }
+});
 
-function setupDataListener(c) {
-    c.on('data', data => {
-        if(data.type === 'move') {
-            if(!otherPlayers[c.peer]) createAvatar(c.peer);
-            otherPlayers[c.peer].position.set(data.x, 1.5, data.z);
-        }
-        if(data.type === 'chat') addChat('Player', data.msg);
-    });
-}
-
-async function loadHouseData() {
-    const response = await fetch('data.json');
-    const data = await response.json();
+function createMap() {
+    // Floor
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({color: 0x111111}));
     floor.rotation.x = -Math.PI/2;
     scene.add(floor);
-    data.mapData.walls.forEach(w => addWall(w.x, w.z, w.w, w.d, w.color));
-    camera.position.set(data.mapData.spawnPoints[0].x, 5, data.mapData.spawnPoints[0].z);
-    window.gameDialogue = data.dialogue;
+
+    // Spawn a test Pizza (Interactable)
+    spawnItem(5, 1, -5, 0xffaa00, 'food', 'Pizza');
 }
 
-function addWall(x, z, w, d, color) {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 15, d), new THREE.MeshStandardMaterial({color: parseInt(color)}));
-    wall.position.set(x, 7.5, z);
-    scene.add(wall);
-}
-
-function hostGame() { socket.emit('registerHouse', roomCode); startGame(); }
-function quickJoin(id) { document.getElementById('joinID').value = id; joinGame(); }
-function joinGame() { 
-    const id = document.getElementById('joinID').value;
-    conn = peer.connect(id);
-    conn.on('open', () => {
-        setupDataListener(conn);
-        createAvatar(id);
-        startGame();
-    });
-}
-
-function startGame() {
-    document.getElementById('menu').style.display = 'none';
-    document.getElementById('ui').style.display = 'block';
-    init();
-    setInterval(() => {
-        gameTime--;
-        const timer = document.getElementById('timer');
-        if(timer) timer.innerText = gameTime + "s";
-        if(window.gameDialogue) {
-            const line = window.gameDialogue.find(d => d.time === gameTime);
-            if(line) addChat('Narrator', line.text);
-        }
-    }, 1000);
+function spawnItem(x, y, z, color, type, name) {
+    const item = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 1), new THREE.MeshStandardMaterial({color: color}));
+    item.position.set(x, y, z);
+    item.userData = { type, name };
+    scene.add(item);
+    interactables.push(item);
 }
 
 function animate() {
     requestAnimationFrame(animate);
     if (!renderer) return;
-    let speed = isSprinting ? 0.4 : 0.2;
-    if(move.f) camera.position.z -= speed;
-    if(move.b) camera.position.z += speed;
-    if(move.l) camera.position.x -= speed;
-    if(move.r) camera.position.x += speed;
 
+    // 360 Directional Movement
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    direction.y = 0; // Stay on ground
+    direction.normalize();
+
+    const side = new THREE.Vector3().crossVectors(camera.up, direction).normalize();
+
+    if(move.f) camera.position.addScaledVector(direction, -0.2);
+    if(move.b) camera.position.addScaledVector(direction, 0.2);
+    if(move.l) camera.position.addScaledVector(side, -0.2);
+    if(move.r) camera.position.addScaledVector(side, 0.2);
+
+    // INTERACTION SYSTEM
+    let canInteract = false;
+    interactables.forEach(obj => {
+        const dist = camera.position.distanceTo(obj.position);
+        if(dist < 5) {
+            canInteract = true;
+            if(move.interact) {
+                addChat('System', `You picked up: ${obj.userData.name}`);
+                scene.remove(obj);
+                interactables = interactables.filter(i => i !== obj);
+                move.interact = false;
+            }
+        }
+    });
+    document.getElementById('interact-label').style.display = canInteract ? 'block' : 'none';
+
+    // Multiplayer Position Sync
     if(conn && conn.open) {
-        conn.send({ type: 'move', x: camera.position.x, z: camera.position.z });
+        conn.send({ type: 'move', x: camera.position.x, z: camera.position.z, ry: yaw });
     }
+
     renderer.render(scene, camera);
 }
 
+// Input Fix
 window.addEventListener('keydown', e => {
     if(e.code === 'KeyW') move.f = true;
     if(e.code === 'KeyS') move.b = true;
     if(e.code === 'KeyA') move.l = true;
     if(e.code === 'KeyD') move.r = true;
-    if(e.shiftKey) isSprinting = true;
-    if(e.code === 'Enter') {
-        const msg = document.getElementById('chat-msg').value;
-        if(msg && conn) {
-            conn.send({type:'chat', msg: msg});
-            addChat('You', msg);
-            document.getElementById('chat-msg').value = '';
-        }
-    }
+    if(e.code === 'KeyE') move.interact = true;
 });
-
 window.addEventListener('keyup', e => {
     if(e.code === 'KeyW') move.f = false;
     if(e.code === 'KeyS') move.b = false;
     if(e.code === 'KeyA') move.l = false;
     if(e.code === 'KeyD') move.r = false;
-    if(!e.shiftKey) isSprinting = false;
+    if(e.code === 'KeyE') move.interact = false;
 });
 
+// Lobby/UI Functions
+window.hostGame = () => { socket.emit('registerHouse', roomCode); startGame(); };
+window.joinGame = () => { 
+    const id = document.getElementById('joinID').value;
+    conn = peer.connect(id);
+    conn.on('open', () => { startGame(); });
+};
+function startGame() { 
+    document.getElementById('menu').style.display = 'none'; 
+    document.getElementById('ui').style.display = 'block'; 
+    init(); 
+}
 function addChat(s, m) {
     const log = document.getElementById('chat-log');
     if(log) { log.innerHTML += `<div><b>${s}:</b> ${m}</div>`; log.scrollTop = log.scrollHeight; }
 }
-animate();
+
+// PeerJS Setup
+peer = new Peer(roomCode);
+peer.on('open', id => { document.getElementById('my-id-display').innerText = "YOUR ID: " + id; });
 
 
 
