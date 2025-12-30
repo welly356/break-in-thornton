@@ -1,14 +1,38 @@
 # 🚪 BREAK IN: THORNTON (104th Ave)
 
-**A fan-made tribute to the legendary "Break In" by Cracky4 on Roblox.** Built with Three.js and PeerJS to bring that classic survival-horror experience to the web browser.
+A fan-made web tribute inspired by **"Break In" by Cracky4 (Roblox)**.  
+Built with **Three.js**, **Socket.IO**, and **Node.js** to recreate a classic survival-horror experience directly in the browser.
+
+> ⚠️ This project is **non-commercial** and made purely for educational and fan purposes.
+
+---
 
 ## 🕹️ Gameplay
-- **Multiplayer:** Simple 4-digit room codes.
-- **Survival:** Scavenge for food and stay in the light.
-- **Horror:** Experience "House Alive" logic as the timer hits zero.
+- **Multiplayer**: Host or join using simple 4-digit room codes  
+- **Survival**: Scavenge for food and manage your health  
+- **Horror**: Experience “house alive” logic as the timer reaches zero  
+
+---
+
+## 🛠️ Tech Stack
+- **Frontend**: HTML, CSS, JavaScript, Three.js  
+- **Backend**: Node.js, Express, Socket.IO (Replit)  
+- **Data**: JSON-based map and dialogue system  
+
+---
+
+## 📂 Project Structure
+
+---
 
 ## 📜 Credits
-- **Original Concept:** All credit for the "Break In" genre and story style goes to **Cracky4**.
-- **Development:** [isshoakafujitora]
-- **Community:** Join us on [Discord](https://discord.gg/mYdWExTQE)
-- As a og roblox player whos past accounts have been banned make sure to add me on roblox my user is isshoakafujitora also known as gravitational force.
+- **Original Concept & Inspiration**: Cracky4 (Roblox)  
+- **Web Adaptation & Development**: isshoakafujitora  
+- **Community**: Join our Discord  
+
+---
+
+## ⚖️ Disclaimer
+This project is **not affiliated with Roblox or Cracky4**.  
+All original concepts belong to their respective owners.
+
